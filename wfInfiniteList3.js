@@ -2,105 +2,102 @@
   by jfwf@yeah.net 2014.10.
 */
 /* need angular.js and iscroll-infinite-wf3.js 
-    note!
-      cell element should be half of the cacheSize.
-      e.g. 15 child elements and cacheSize=30 .
-
-    <wf-infinite-list2 > 
-    must have following attrs:
-      id               = unique string id.
-      inf-element      = string:'.someCell' Note3!
-      delegate         = object:delegateObject !note1
-      page-size        = int: 30 , number of recs in each load.
-      wrapper-parent-id        = wrapperXXXX , wrapperId for <wf-infinite-list2> elementId.
-                          this string value should be unique in DOM 
-                          and must be the same as this elementId.
-                          e.g.  <wf-infinite-list2 id='w101' ... wrapper-id='w101'>  
     
-    optional attrs:
-      push-trigger-offset = 60
-      push-start-html     = 'push to update'
-      push-release-html   = 'release for update'
-      push-loading-html   = 'updating'
-
-      pull-trigger-offset = 60
-      pull-start-html     = 'pull to load more'
-      pull-release-html     = 'release for loading'
-      pull-loading-html     = 'loading...'
-      pull-nothing-html     = 'no more for loading' 
-
-
-
-    !note1:
-      delegate must have :
-        delegate.onData=function(el,index)
-        {
-          el.innerHTML = 'cell'+index ;
-        };
-        delegate.onPullTriggered=function(sref,start0)
-        {
-          //staff...
-
-          // onok: sref.pushPullLoadingFinished(isOk, isAll );
-        };
-        delegate.onPushTriggered=function(sref)
-        {
-          //staff...
-
-          // onok: sref.pushPullLoadingFinished(isOk, isAll );
-        };
-        delegate.getDataCount=function()
-        {
-          return 0 ;
-        } ;
-        delegate.onScrollerReady=function(sref)
-        {
-          //the first push or scroll to history position.
-          sref.pushLoadBegin() ;
-          sref.setPullElementDisplay(false) ;
-          //history: sref.scrollTo(x,y) ;
-        } ; 
-
-
-
-    !note2:
-      After onPullTriggered/onPushTriggered
-      finished, following method must be called 
-      to make scroller know more data can be displayed.
-        sref.pushPullLoadingFinished:function(isOk, isAll )
-
-
-    sref useful functions:
-      sref.setPullElementDisplay(boolValue) ;
-      boolValue = sref.isPullElementDisplay() ;
-      sref.pushLoadBegin() ;
-      sref.pullLoadBegin() ;
-      sref.scrollTo(x,y) 
-      sref.refresh() ;
-      sref.reorderInfinite() ;
-
-    InfiniteElement useful properties:
-      element._phase : index in datasource.
-      element._top   : top position in scroller.
-
-
-    !note3
-    inf-element css style must like:
-    .xxxCell {
-      position:absolute;
-      top:0px;
-      left:0px;
-      ...
-    }
-
     --- new ----
-    1.there should be nothing between <wf-infinite-list3> and </wf-infinite-list3>, even newline is bad.
+    1.Because wrapper should be the first child of the directive,
+      there should be nothing between <wf-infinite-list3> and </wf-infinite-list3>,
+      even newline is bad.
       e.g. <wf-infinite-list3></wf-infinite-list3> is ok.
            <wf-infinite-list3> </wf-infinite-list3> is bad.
            <wf-infinite-list3>something</wf-infinite-list3> is bad.
            <wf-infinite-list3><p>text</p></wf-infinite-list3> is bad.
            <wf-infinite-list3>
            </wf-infinite-list3> is bad.
+
+    2.Height of <wf-infinite-list3> should be defined or could be calculated by style.
+
+    3.<wf-infinite-list3> have following attrs:
+      required attrs:
+      delegate         = object: 
+    
+      optional attrs:
+        push-enable = false ;
+        pull-enable = false ;
+        start-scroll-y = 0  ;
+
+        push-trigger-offset = 60
+        push-start-html     = 'push to refresh'
+        push-release-html   = 'release for refresh'
+        push-loading-html   = 'refreshing'
+
+        pull-trigger-offset = 60
+        pull-start-html     = 'pull to load more'
+        pull-release-html     = 'release for load'
+        pull-loading-html     = 'loading...'
+        pull-nothing-html     = 'no more load' 
+
+    4. delegate must have following methods:
+        $scope.delegate = {} ;
+        $scope.delegate.onData=function(el,index,lr)
+        {//el:element ; index:index in left or right; lr:0-left,1-right.
+          el.innerHTML = 'data' ;
+        } ;
+        $scope.delegate.onCellHeight=function(index,lr)
+        {//index:index in left or right; lr:0-left,1-right.
+          return $scope.datapool[lr][index].h ;
+        } ;
+        $scope.delegate.onCellY = function(index,lr)
+        {//index:index in left or right; lr:0-left,1-right.
+          return $scope.datapool[lr][index].y ;
+        } ;
+        $scope.delegate.onScrollHeight = function(lr)
+        {//lr:0-left,1-right.
+          return allHeight[lr] ;
+        } ;
+        $scope.delegate.onCellIndex15 = function(index,lr)
+        {//index:index in left or right; lr:0-left,1-right.
+          return $scope.datapool[lr][index].i15 ;
+        } ;
+        $scope.delegate.onPushTriggered=function(sref)
+        {//sref:scroller reference.
+          $scope.loadPage($scope.url1,1,$scope.pageSize,sref) ;
+        } ;
+        $scope.delegate.getDataCount=function(lr)
+        {//lr:0-left,1-right.
+          return $scope.datapool[lr].length ;
+        } ;
+        $scope.delegate.onPullTriggered=function(sref)
+        {//sref:scroller reference.
+          //! because scroller need to know each cell's height to display correctly,
+          //  the smaller pager must be loaded before bigger pager.
+          $scope.loadPage($scope.url1,ipage,$scope.pageSize,sref) ;
+        } ;
+        $scope.delegate.onCellTapped=function(dind,lr)
+        {//dind:index in left or right; lr:0-left,1-right;
+          console.log('tap : '+dind+','+lr) ;
+        }
+        $scope.delegate.onScrollerReady=function(sref)
+        {//sref:scroller reference.
+          //sref.pushLoadBegin() ;
+          //sref.setPullElementDisplay(false) ;
+        } ;
+
+    5. After push or pull finished
+        sref.pushPullLoadingFinished(isOk , isAll ); must be called.
+
+
+    6. sref useful functions:
+      sref.setPushEnable(usePush) ;
+      sref.setPushEnable(usePush) ;
+      sref.pushLoadBegin() ;
+      sref.pullLoadBegin() ;
+      sref.scrollTo(x,y) 
+      sref.refresh() ;
+      sref.reorderInfinite() ;
+
+    7. cellElement useful properties:
+        element.dindex : index in datasource.
+    
 
 */
 angular.module('Wangf',['ngAnimate'])
@@ -110,42 +107,42 @@ angular.module('Wangf',['ngAnimate'])
       template:"<div style='position:absolute;width:100%;top:0px;bottom:0px;left:0px;overflow:hidden;'>"
               +"<div style='position:absolute;top:0px;left:0px;margin:0px;padding:0px;width:100%;'>"
               
-              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
-              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
-              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
-              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
-              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped0($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped0($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped0($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped0($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped0($event.target)'></div>"
 
-              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
-              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
-              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
-              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
-              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped0($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped0($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped0($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped0($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped0($event.target)'></div>"
 
-              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
-              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
-              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
-              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
-              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped0($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped0($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped0($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped0($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped0($event.target)'></div>"
 
 
-              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
-              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
-              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
-              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
-              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped1($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped1($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped1($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped1($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped1($event.target)'></div>"
 
-              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
-              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
-              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
-              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
-              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped1($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped1($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped1($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped1($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped1($event.target)'></div>"
 
-              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
-              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
-              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
-              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
-              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped1($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped1($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped1($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped1($event.target)'></div>"
+              +"<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped1($event.target)'></div>"
 
               +"<div style='position:absolute;width:100%;top:-44px;left:0px;height:44px;'>push for updating.</div>"
               +"<div style='position:absolute;width:100%;top:9999px;left:0px;height:44px;'>pull for loading.</div>"
@@ -154,28 +151,23 @@ angular.module('Wangf',['ngAnimate'])
               
               +"</div>",
       transclude: false,
-      scope:{delegate:"="
+      scope:{
+              delegate:"=",
+              pushEnable:'@',
+              pullEnable:'@',
+              pushTriggerOffset:'@',
+              pushStartHtml:'@',
+              pushReleaseHtml:'@',
+              pushLoadingHtml:'@',
+              pullTriggerOffset:'@',
+              pullStartHtml:'@',
+              pullReleaseHtml:'@',
+              pullLoadingHtml:'@',
+              pullNothingHtml:'@',
+              startScrollY:'@'
             },
-      compile: function (element, attrs, transclude) { // the compilation of DOM is done here.
-          // It is responsible for produce HTML DOM or it returns a combined link function
-          // Further Docuumentation on this - http://docs.angularjs.org/guide/directive
-          /*
-          var containerHtml = "<div style='position:absolute;width:100%;top:0px;bottom:0px;overflow:hidden;'></div>"; // the HTML to be produced
-          element.append(containerHtml) ;
-          var containerEl = element.children() ;
-          var scrollHtml = "<div style='position:absolute;top:0px;left:0px;margin:0px;padding:0px;width:100%;'></div>";
-          containerEl.append(scrollHtml) ;
-          var scrollEl = containerEl.children() ;
-          var cellHtml ="<div style='position:absolute;top:0px;left:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>";
-          for(var i = 0 ; i<15 ; i++ )
-          {
-            scrollEl.append(cellHtml) ;
-          }
-          cellHtml="<div style='position:absolute;top:0px;right:0px;width:50%;margin:0px;padding:0px;height:44px;' ng-click='tapped($event.target)'></div>";
-          for(var i = 0 ; i<15 ; i++ )
-          {
-            scrollEl.append(cellHtml) ;
-          }*/
+      compile: function (element, attrs, transclude) { 
+
           return function(scope,element,attrs)
           {
             var wrapper = element[0].firstChild ;
@@ -200,10 +192,9 @@ angular.module('Wangf',['ngAnimate'])
               lrcells:lrCells ,
               pushcell:pushcell,
               pullcell:pullcell,
-              pushenable:true,
-              pullenable:true
-              //Array(2,N) ;
-              /*pushTriggerOffset:scope.pushTriggerOffset,
+              pushenable:scope.pushEnable,
+              pullenable:scope.pullEnable,
+              pushTriggerOffset:scope.pushTriggerOffset,
               pushStartHtml:scope.pushStartHtml,
               pushReleaseHtml:scope.pushReleaseHtml,
               pushLoadingHtml:scope.pushLoadingHtml,
@@ -211,9 +202,34 @@ angular.module('Wangf',['ngAnimate'])
               pullStartHtml:scope.pullStartHtml,
               pullReleaseHtml:scope.pullReleaseHtml,
               pullLoadingHtml:scope.pullLoadingHtml,
-              pullNothingHtml:scope.pullNothingHtml*/
+              pullNothingHtml:scope.pullNothingHtml,
+              startScrollY:scope.startScrollY
             });
-            // scope.delegate.onScrollerReady(scope.scroller) ;
+            
+            scope.tapped0 = function(el)
+            {
+              var el1 = el ;
+              var dindex = -1 ;
+              while( el1 != wrapper && el1 != null ) 
+              { 
+                if( typeof(el1.dindex) !== 'undefined' )
+                {  dindex = el1.dindex ; break ; }
+                else el1 = el1.parentNode ;
+              }
+              scope.delegate.onCellTapped(dindex,0) ;
+            } ;
+            scope.tapped1 = function(el)
+            {
+              var el1 = el ;
+              var dindex = -1 ;
+              while( el1 != wrapper && el1 != null ) 
+              { 
+                if( typeof(el1.dindex) !== 'undefined' )
+                {  dindex = el1.dindex ; break ; }
+                else el1 = el1.parentNode ;
+              }
+              scope.delegate.onCellTapped(dindex,1) ;
+            } ;
           } ;// link function end.
       }// compile function end.
     } ;

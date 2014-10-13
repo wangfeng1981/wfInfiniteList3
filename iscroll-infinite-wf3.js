@@ -264,8 +264,8 @@ function IScroll (options) {
 	this.pullCell = options.pullcell ;
 	this.pullCell._scrollBottom = Math.max(Math.max(this.delegate.onScrollHeight(0),this.delegate.onScrollHeight(1)),this.wrapper.offsetHeight) ;
 	this.pullCell.style.top = this.pullCell._scrollBottom+'px' ;
-	this.pushEnable = options.pushenable || false ;
-	this.pullEnable = options.pullenable || false ;
+	this.pushEnable = (options.pushenable&&options.pushenable==='true')?true:false ;
+	this.pullEnable = (options.pullenable&&options.pullenable==='true')?true:false ;
 	this.setPushEnable(!this.pushEnable) ;
 	this.setPullEnable(!this.pullEnable) ;
 	this.setPushEnable(!this.pushEnable) ;
@@ -328,6 +328,13 @@ function IScroll (options) {
 	for ( var i in options ) {
 		this.options[i] = options[i];
 	}
+
+	var tStartScrollY = options.startScrollY||0 ;
+	this.options.startY =  parseInt(tStartScrollY) ;//wf add
+
+
+
+
 
 	// Normalize options
 	this.translateZ = this.options.HWCompositing && utils.hasPerspective ? ' translateZ(0)' : '';
@@ -1617,7 +1624,7 @@ IScroll.prototype = {
 		this.infiniteMaster = this.infiniteElements[0];
 		this.infiniteElementHeight = this.infiniteMaster.offsetHeight;
 		this.infiniteHeight = this.infiniteLength * this.infiniteElementHeight;*/
-		this.scrollerHeight = this.delegate.onScrollHeight() ;
+		this.scrollerHeight = Math.max(this.delegate.onScrollHeight(0),this.delegate.onScrollHeight(1)) ;
 		for(var i = 0 ; i<15 ; i++ )
 		{
 			this.lrCells[0][i].dindex = -1 ;
@@ -1631,7 +1638,7 @@ IScroll.prototype = {
 		this.options.pullNothingHtml = this.options.pullNothingHtml || 'no more to load';
 
 		this.options.pushTriggerOffset = this.options.pushTriggerOffset || 60;
-		this.options.pushStartHtml = this.options.pushStartHtml || "<div style='position:absolute;top:-20px;width:100%;text-align:center;'>push to refresh</div>";
+		this.options.pushStartHtml = this.options.pushStartHtml || "push to refresh";
 		this.options.pushReleaseHtml = this.options.pushReleaseHtml || 'release to start refresh';
 		this.options.pushLoadingHtml = this.options.pushLoadingHtml || 'refreshing...';
 

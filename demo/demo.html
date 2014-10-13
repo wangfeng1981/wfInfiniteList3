@@ -14,194 +14,75 @@
   app.controller('controller1' , function($scope,$http,$timeout){
     $scope.title = 'two column infinite scroll' ;
     document.title = $scope.title ;
-    $scope.allHeight = new Array(0,0) ;
-
-    $scope.datapool = new Array() ;
-    $scope.datapool2 = new Array() ;
-    $scope.pageSize = 20 ;
     $scope.url1 = 'http://www.hihey.com/api2/arts.php' ;
-    $scope.allDataCount = 0 ;
-
+    $scope.datapool = [] ;
+    $scope.datapool[0] = new Array() ;
+    $scope.datapool[1] = new Array() ;
+    $scope.pageSize = 20 ;
+    $scope.scrollInfo = {limit:0,valid:0,loadedPage:0} ;// valid not include empty place holder.
     
 
     $scope.delegate = {} ;
     $scope.delegate.onData=function(el,index,lr)
     {
-      if( lr==0 )
+      var padstr = ['0px 5px 10px 10px','0px 10px 10px 5px','0px 10px 10px 10px'] ;
+      var leftright = ['left:10px;right:5px;','left:5px;right:10px'] ;
+      var hw = window.innerWidth/2 ;
+      var data = $scope.datapool[lr][index] ;
+      if(parseInt(data.id)>0)
       {
-        if( index < $scope.datapool.length )
-          el.innerHTML = $scope.datapool[index].data ;
-        else
-          el.innerHTML = 'invalid index:'+index ;
+        if( $scope.datapool[lr][index].imgsize.w/$scope.datapool[lr][index].imgsize.h>1.75 )
+        {
+          el.innerHTML= "<div style='position:relative;padding:"+padstr[2]+";width:"+(hw*2-20)+"px;height:"+($scope.datapool[lr][index].h-10)+"px;'><img src='"+data.thumb+"' style='height:100%;width:100%;'><div style='background-color:black;color:white;position:absolute;left:10px;right:10px;bottom:10px;font-size:16px;'>"+data.artist+'-'+data.name+"</div></div>" ;
+        }else
+        {
+          el.innerHTML= "<div style='position:relative;padding:"+padstr[lr]+";width:"+(hw-15)+"px;height:"+($scope.datapool[lr][index].h-10)+"px;'><img src='"+data.thumb+"' style='height:100%;width:100%;'><div style='background-color:black;color:white;position:absolute;"+leftright[lr]+";bottom:10px;font-size:16px;'>"+data.artist+'-'+data.name+"</div></div>" ;
+        }
       }else
       {
-        if( index < $scope.datapool2.length )
-          el.innerHTML = $scope.datapool2[index].data ;
-        else
-          el.innerHTML = 'invalid index:'+index ;
-      }  
+        el.innerHTML= '' ;
+      }
     } ;
     $scope.delegate.onCellHeight=function(index,lr)
     {
-      if(lr==0)
-      {
-        if(index<$scope.datapool.length)
-          return $scope.datapool[index].h ;
-      }else
-      {
-        if( index<$scope.datapool2.length)
-          return $scope.datapool2[index].h ;
-      }
-      return 0 ;
+      return $scope.datapool[lr][index].h ;
     } ;
     $scope.delegate.onCellY = function(index,lr)
     {
-      if(lr==0)
-      {
-        if(index<$scope.datapool.length)
-          return $scope.datapool[index].y ;
-      }else
-      {
-        if( index<$scope.datapool2.length)
-          return $scope.datapool2[index].y ;
-      }
-      return 0 ;
+      return $scope.datapool[lr][index].y ;
     } ;
     $scope.delegate.onScrollHeight = function(lr)
     {
-      return $scope.allHeight[lr] ;
+      var allhei = 0 ;
+      if( $scope.datapool[lr].length> 0 ) allhei = 
+          $scope.datapool[lr][$scope.datapool[lr].length-1].y+
+          $scope.datapool[lr][$scope.datapool[lr].length-1].h ;
+      return allhei ;
     } ;
     $scope.delegate.onCellIndex15 = function(index,lr)
     {
-      if(lr==0)
-      {
-        if(index<$scope.datapool.length)
-          return $scope.datapool[index].i15 ;
-      }else
-      {
-        if( index<$scope.datapool2.length)
-          return $scope.datapool2[index].i15 ;
-      }
-      return 0 ;
+      return $scope.datapool[lr][index].i15 ;
     } ;
 
     $scope.delegate.onPushTriggered=function(sref)
     {
-      $scope.datapool = new Array() ;
-      $scope.datapool2 = new Array() ;
-      var y0=0 , y1=0 , i0 = 0 , i1 = 0 ;
-      for(var i = 0 ; i<10 ; i++ )
-      {
-        $scope.datapool[i] = {data:'left-data-'+i,y:y0,h:80+parseInt(Math.random()*200),i15:i0++} ;
-        $scope.datapool2[i] = {data:'right-test-'+i,y:y1,h:80+parseInt(Math.random()*200),i15:i1++} ;
-        y0+=$scope.datapool[i].h ;
-        y1+=$scope.datapool2[i].h ;
-        if(i0==15) i0 = 0 ;
-        if(i1==15) i1 = 0 ;
-      }  
-      $scope.allHeight = new Array(y0,y1) ;
-      sref.pushPullLoadingFinished(true,false) ;
-      /*
-      var url1 = $scope.url1+"?page="+1+"&page_size="+
-                    $scope.pageSize+"&cb=JSON_CALLBACK" ;
-      var isAll = false ;
-      $http.jsonp(url1)
-          .success(function(data){
-            $scope.allDataCount = data.count ;
-            $scope.datapool = new Array() ;
-            var len1 = data.result.length ;
-            for(var i=0 ; i<len1 ; i++ )
-            {
-              $scope.datapool[i] = data.result[i] ;
-            }
-            var newBigLen = $scope.datapool.length ;
-            if( newBigLen >= $scope.allDataCount ) isAll = true ;
-            else isAll = false ;
-            sref.pushPullLoadingFinished(true, isAll );
-            if( !sref.isPullElementDisplay() )
-            {
-              sref.setPullElementDisplay(true) ;
-            }
-          })
-          .error (function(){
-            console.log('jsonp failed.') ;
-            sref.pushPullLoadingFinished(false, isAll );
-          });// end of $http.jsonp... */
+      $scope.loadPage($scope.url1,1,$scope.pageSize,sref) ;
     } ;
     $scope.delegate.getDataCount=function(lr)
     {
-      if( lr==0 )
-        return $scope.datapool.length ;
-      else
-        return $scope.datapool2.length ;
+      return $scope.datapool[lr].length ;
     } ;
- 
-
     $scope.delegate.onPullTriggered=function(sref)
     {
-      var l0 = $scope.datapool.length ;
-      var l1 = $scope.datapool2.length ;
-      var y0 = $scope.allHeight[0] ;
-      var y1 = $scope.allHeight[1] ;
-      var i0 = 0, i1=0 ;
-      if( l0>0 ) i0 = $scope.datapool[l0-1].i15+1;
-      if( l1>0 ) i1 = $scope.datapool2[l0-1].i15+1 ;
-      for(var i = 0 ; i<5 ; i++ )
-      {
-        if(i0==15) i0 = 0 ;
-        if(i1==15) i1 = 0 ;
-        $scope.datapool.push({data:'left '+(l0+i),y:y0,h:80+parseInt(Math.random()*200),i15:i0++}) ;
-        $scope.datapool2.push({data:'right '+(l1+i),y:y1,h:80+parseInt(Math.random()*200),i15:i1++}) ;
-        y0+=$scope.datapool[i].h ;
-        y1+=$scope.datapool2[i].h ;
-      }  
-      $scope.allHeight = new Array(y0,y1) ;
-      sref.pushPullLoadingFinished(true,false) ;
-      /*
-      var loadFrom = index ;
-      var biglen = $scope.datapool.length ;
-      var isAll = false ;
-      if( (loadFrom+ $scope.pageSize -1) >= biglen && 
-          ( biglen < $scope.allDataCount || $scope.allDataCount==0 ) )
-      {
-        loadFrom = biglen ;
-        var loadFromPage = parseInt(loadFrom/$scope.pageSize) + 1;
-        var url1 = $scope.url1+"?page="+loadFromPage+"&page_size="+
-                    $scope.pageSize+"&cb=JSON_CALLBACK" ;
-        $http.jsonp(url1)
-          .success(function(data){
-            $scope.allDataCount = data.count ; 
-            var len1 = data.result.length ;
-            var start0 = (data.page-1)*$scope.pageSize ;
-            for(var i=0 ; i<len1 ; i++ )
-            {
-              $scope.datapool[start0+i] = data.result[i] ;
-            }
-            var newBigLen = $scope.datapool.length ;
-            if( newBigLen >= $scope.allDataCount ) isAll = true ;
-            else isAll = false ;
-            sref.pushPullLoadingFinished(true , isAll );
-          })
-          .error (function(){
-            console.log('jsonp failed.') ;
-            sref.pushPullLoadingFinished(false ,isAll );})
-      }else
-      {
-        sref.pushPullLoadingFinished(false , isAll );
-      }*/
+      var ipage = $scope.scrollInfo.loadedPage+1 ;
+      console.log(ipage) ;
+      $scope.loadPage($scope.url1,ipage,$scope.pageSize,sref) ;
     } ;
 
 
-    $scope.tapped=function(el)
+    $scope.delegate.onCellTapped=function(dind,lr)
     {
-      if( typeof(el._phase) !== 'undefined' )
-        console.log(el._phase) ;
-      else
-      {
-        var par = el.parentNode;
-        if( typeof(par._phase) !== 'undefined' )
-          console.log(par._phase) ;
-      }
+      console.log('tap : '+dind+','+lr) ;
     }
 
 
@@ -209,7 +90,100 @@
     {
       //sref.pushLoadBegin() ;
       //sref.setPullElementDisplay(false) ;
-    }
+    } ;
+
+
+
+
+
+
+
+
+    $scope.cleanScrollDataInfo = function()
+    {
+      $scope.datapool[0] = [] ;
+      $scope.datapool[1] = [] ;
+      $scope.scrollInfo.limit = 0 ;
+      $scope.scrollInfo.valid = 0 ;
+      $scope.scrollInfo.loadedPage = 0 ;
+    } , 
+    $scope.addToDatapool = function(arr)
+    {
+      var scrwid = window.innerWidth ;
+      var len = arr.length ;
+      var i0 = $scope.datapool[0].length-1 ; //the last index.
+      var i1 = $scope.datapool[1].length-1 ; //the last index.
+      var hei0 = 0 ; if(i0>=0) hei0 = $scope.datapool[0][i0].y
+                                +$scope.datapool[0][i0].h ; //total height.
+      var hei1 = 0 ; if(i1>=0) hei1 = $scope.datapool[1][i1].y
+                                +$scope.datapool[1][i1].h ; //total height.
+      var ic0 = -1 ; if(i0>=0) ic0 = $scope.datapool[0][i0].i15 ;//last i15
+      var ic1 = -1 ; if(i1>=0) ic1 = $scope.datapool[1][i1].i15 ;//last i15
+      for(var i = 0 ; i<len ; i++ )
+      {
+        $scope.scrollInfo.valid++ ;
+        var aw = arr[i] ;
+        var rwh = aw.imgsize.w/aw.imgsize.h ;
+        var rhw = aw.imgsize.h/aw.imgsize.w ;
+        var cellhei = Math.ceil(scrwid * rhw / 2);
+        if( aw.imgsize.w == -1 )
+        {
+          rwh = 1 ; rhw = 1 ; cellhei = scrwid/2 ; aw.thumb='ph.gif';aw.image='ph.gif';
+        }
+        // portrait or landscape ?
+        if( rwh > 1.75 )
+        {//landscape left append aw , and right append emtpy place holder.
+          if( cellhei < 80 ) cellhei = 80 ;
+          ic0++ ; if( ic0==15 ) ic0 = 0 ;
+          ic1++ ; if( ic1==15 ) ic1 = 0 ;
+          var awEmpty = {id:0,i15:ic1,h:cellhei,y:0} ;
+          aw.i15 = ic0 ;
+          aw.h = cellhei ;
+          aw.y = Math.max(hei0,hei1) ; awEmpty.y = aw.y ;
+          hei0 = aw.y+aw.h ; hei1 = hei0 ;
+          $scope.datapool[0].push(aw) ;
+          $scope.datapool[1].push(awEmpty) ;
+        }else
+        {//portrait
+          if( hei0 <= hei1 )
+          {//left lower . append to left.
+            ic0++ ; if( ic0==15 ) ic0 = 0 ;
+            aw.i15 = ic0 ;
+            aw.h = cellhei ;
+            aw.y = hei0 ; hei0+=aw.h ;
+            $scope.datapool[0].push(aw) ;
+          }else
+          {//right lower. append to right.
+            ic1++ ; if( ic1==15 ) ic1 = 0 ;
+            aw.i15 = ic1 ;
+            aw.h = cellhei ;
+            aw.y = hei1 ; hei1+=aw.h ;
+            $scope.datapool[1].push(aw) ;
+          }
+        }
+      }
+    },
+
+    $scope.loadPage = function(url0,ipage,pagesize,sref)
+    {
+      if( ipage!=1 && ipage != $scope.scrollInfo.loadedPage+1 )
+      {
+        sref.pushPullLoadingFinished(false , false );
+        return ;
+      }
+      var url1 = url0+'?page='+ipage+'&page_size='+pagesize+'&cb=JSON_CALLBACK';
+      $http.jsonp(url1)
+      .success(function(data){
+        if(ipage==1) $scope.cleanScrollDataInfo() ;
+        $scope.scrollInfo.limit = data.result.count ;
+        $scope.addToDatapool(data.result.arts) ;
+        $scope.scrollInfo.loadedPage = ipage ;
+        sref.pushPullLoadingFinished(true , ($scope.scrollInfo.limit==$scope.scrollInfo.valid) );
+      })// end of success.
+      .error(function(data){
+        sref.pushPullLoadingFinished(false , false );
+      }) ;// end of error and jsonp.
+    } ;
 
   }) ;
 </script>
@@ -256,7 +230,7 @@
 <body ng-app='app1' ng-controller='controller1'>
 <h3>{{title}}</h3>
 
-<wf-infinite-list3 delegate='delegate' style='position:absolute;top:44px;left:0px;width:100%;bottom:0px;'></wf-infinite-list3>
+<wf-infinite-list3 delegate='delegate' push-enable='true' pull-enable='true' style='position:absolute;top:44px;left:0px;width:100%;bottom:0px;background-color:black;'></wf-infinite-list3>
 
 </body>
 </html>
